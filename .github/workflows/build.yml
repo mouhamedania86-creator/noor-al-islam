@@ -5,13 +5,17 @@ on:
     branches: [ main, master, develop ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:  # زر تشغيل يدوي من GitHub
+  workflow_dispatch:
 
 jobs:
   build:
     name: 🏗️ Build Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
+
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
     steps:
       - name: 📥 تحميل الكود من GitHub
@@ -23,14 +27,22 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: 🤖 تجهيز Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          accept-android-sdk-licenses: true
-          packages: |
-            platform-tools
-            platforms;android-36
-            build-tools;36.0.0
+      - name: 🤖 تنصيب Android SDK
+        run: |
+          echo "📍 SDK Location: $ANDROID_HOME"
+          ls $ANDROID_HOME/cmdline-tools/ 2>/dev/null || echo "⚠️ No cmdline-tools found"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+          echo "📜 قبول تراخيص SDK..."
+          yes | sdkmanager --licenses 2>&1 | tail -3 || true
+          echo "📦 تنصيب platform-tools..."
+          sdkmanager "platform-tools" 2>&1 | tail -3
+          echo "📦 تنصيب platforms;android-36..."
+          sdkmanager "platforms;android-36" 2>&1 | tail -3
+          echo "📦 تنصيب build-tools;36.0.0..."
+          sdkmanager "build-tools;36.0.0" 2>&1 | tail -3
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "✅ SDK جاهز"
 
       - name: 📦 تنصيب Gradle 8.14
         run: |
@@ -47,7 +59,7 @@ jobs:
             echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
             echo "✅ تم إنشاء .env بمفتاح Gemini"
           else
-            echo "⚠️ GEMINI_API_KEY غير مضبوط - سيتم استخدام placeholder"
+            echo "⚠️ GEMINI_API_KEY غير مضبوط - استخدام placeholder"
             cp .env.example .env
           fi
 
