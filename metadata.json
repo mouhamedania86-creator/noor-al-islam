@@ -1,0 +1,6 @@
+{
+  "name": "نور الإسلام - Noor Al-Islam",
+  "description": "تطبيق إسلامي شامل يحتوي على القرآن الكريم ومواقيت الصلاة والأذكار والقبلة والراديو وأسماء الله الحسنى والمساعد الإسلامي الذكي IslamAI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
