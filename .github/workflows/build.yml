@@ -62,13 +62,11 @@ jobs:
       - name: 🩹 إصلاحات KSP و Gradle
         run: |
           if ! grep -q "ksp.useKSP2" gradle.properties; then
-            cat >> gradle.properties <<EOF
-
-# KSP + Gradle fixes
-ksp.useKSP2=false
-ksp.incremental=false
-org.gradle.unsafe.configuration-cache=false
-EOF
+            echo "" >> gradle.properties
+            echo "# KSP + Gradle fixes" >> gradle.properties
+            echo "ksp.useKSP2=false" >> gradle.properties
+            echo "ksp.incremental=false" >> gradle.properties
+            echo "org.gradle.unsafe.configuration-cache=false" >> gradle.properties
           fi
           echo "✅ gradle.properties tail:"
           tail -8 gradle.properties
