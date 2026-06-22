@@ -36,7 +36,6 @@ jobs:
           sdkmanager "platforms;android-36" 2>&1 | tail -3
           sdkmanager "build-tools;36.0.0" 2>&1 | tail -3
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          echo "✅ SDK جاهز"
 
       - name: 📦 تنصيب Gradle 9.3.1
         run: |
@@ -59,20 +58,17 @@ jobs:
         run: |
           gradle wrapper --gradle-version 9.3.1 --distribution-type bin
           chmod +x gradlew
-          echo "✅ تم توليد Wrapper"
 
-      - name: 🩹 إصلاح إصدار KSP
+      - name: 🩹 إصلاح مشكلة KSP
         run: |
-          echo "🔍 الإصدار الحالي:"
-          grep "googleDevtoolsKsp" gradle/libs.versions.toml || echo "غير موجود"
-          sed -i 's/googleDevtoolsKsp = "2.3.5"/googleDevtoolsKsp = "2.2.10-1.0.28"/' gradle/libs.versions.toml
-          echo "✅ الإصدار الجديد:"
-          grep "googleDevtoolsKsp" gradle/libs.versions.toml
           if ! grep -q "ksp.useKSP2" gradle.properties; then
             echo "" >> gradle.properties
-            echo "# KSP isolation fix" >> gradle.properties
-            echo "ksp.useKSP2=true" >> gradle.properties
+            echo "ksp.useKSP2=false" >> gradle.properties
+          else
+            sed -i 's/ksp.useKSP2=true/ksp.useKSP2=false/' gradle.properties
           fi
+          echo "✅ KSP mode:"
+          grep "ksp.useKSP2" gradle.properties
 
       - name: 🔐 توليد debug.keystore
         run: |
