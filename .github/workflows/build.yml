@@ -59,16 +59,19 @@ jobs:
           gradle wrapper --gradle-version 9.3.1 --distribution-type bin
           chmod +x gradlew
 
-      - name: 🩹 إصلاح مشكلة KSP
+      - name: 🩹 إصلاحات KSP و Gradle
         run: |
           if ! grep -q "ksp.useKSP2" gradle.properties; then
-            echo "" >> gradle.properties
-            echo "ksp.useKSP2=false" >> gradle.properties
-          else
-            sed -i 's/ksp.useKSP2=true/ksp.useKSP2=false/' gradle.properties
+            cat >> gradle.properties <<EOF
+
+# KSP + Gradle fixes
+ksp.useKSP2=false
+ksp.incremental=false
+org.gradle.unsafe.configuration-cache=false
+EOF
           fi
-          echo "✅ KSP mode:"
-          grep "ksp.useKSP2" gradle.properties
+          echo "✅ gradle.properties tail:"
+          tail -8 gradle.properties
 
       - name: 🔐 توليد debug.keystore
         run: |
@@ -84,8 +87,11 @@ jobs:
 
       - name: 🏗️ بناء Debug APK
         env:
-          GRADLE_OPTS: "-Xmx4g -Dfile.encoding=UTF-8 -XX:+UseG1GC"
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+          GRADLE_OPTS: "-Xmx4g -Dfile.encoding=UTF-8 -XX:+UseG1GC -Dkotlin.daemon.jvm.options=-Xmx2g"
+        run: |
+          echo "🚀 بدء البناء..."
+          ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tail -250
+          echo "✅ انتهى البناء"
 
       - name: 📤 رفع Debug APK
         uses: actions/upload-artifact@v4
