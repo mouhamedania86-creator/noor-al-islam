@@ -61,6 +61,19 @@ jobs:
           chmod +x gradlew
           echo "✅ تم توليد Wrapper"
 
+      - name: 🩹 إصلاح إصدار KSP
+        run: |
+          echo "🔍 الإصدار الحالي:"
+          grep "googleDevtoolsKsp" gradle/libs.versions.toml || echo "غير موجود"
+          sed -i 's/googleDevtoolsKsp = "2.3.5"/googleDevtoolsKsp = "2.2.10-1.0.28"/' gradle/libs.versions.toml
+          echo "✅ الإصدار الجديد:"
+          grep "googleDevtoolsKsp" gradle/libs.versions.toml
+          if ! grep -q "ksp.useKSP2" gradle.properties; then
+            echo "" >> gradle.properties
+            echo "# KSP isolation fix" >> gradle.properties
+            echo "ksp.useKSP2=true" >> gradle.properties
+          fi
+
       - name: 🔐 توليد debug.keystore
         run: |
           if [ ! -f debug.keystore ]; then
