@@ -59,17 +59,17 @@ jobs:
           gradle wrapper --gradle-version 9.3.1 --distribution-type bin
           chmod +x gradlew
 
-      - name: 🩹 إصلاحات KSP و Gradle
+      - name: 🩹 إصلاح إصدار KSP
         run: |
-          if ! grep -q "ksp.useKSP2" gradle.properties; then
-            echo "" >> gradle.properties
-            echo "# KSP + Gradle fixes" >> gradle.properties
-            echo "ksp.useKSP2=false" >> gradle.properties
-            echo "ksp.incremental=false" >> gradle.properties
-            echo "org.gradle.unsafe.configuration-cache=false" >> gradle.properties
-          fi
-          echo "✅ gradle.properties tail:"
-          tail -8 gradle.properties
+          echo "🔍 الإصدار الحالي:"
+          grep "googleDevtoolsKsp" gradle/libs.versions.toml || echo "غير موجود"
+          sed -i 's/googleDevtoolsKsp = "2.3.5"/googleDevtoolsKsp = "2.2.10-2.0.2"/' gradle/libs.versions.toml
+          echo "✅ الإصدار الجديد:"
+          grep "googleDevtoolsKsp" gradle/libs.versions.toml
+          sed -i '/ksp\./d' gradle.properties
+          sed -i '/org.gradle.unsafe.configuration-cache/d' gradle.properties
+          echo "✅ gradle.properties:"
+          cat gradle.properties
 
       - name: 🔐 توليد debug.keystore
         run: |
@@ -85,11 +85,13 @@ jobs:
 
       - name: 🏗️ بناء Debug APK
         env:
-          GRADLE_OPTS: "-Xmx4g -Dfile.encoding=UTF-8 -XX:+UseG1GC -Dkotlin.daemon.jvm.options=-Xmx2g"
+          GRADLE_OPTS: "-Xmx4g -Dfile.encoding=UTF-8 -XX:+UseG1GC"
         run: |
           echo "🚀 بدء البناء..."
-          ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tail -250
-          echo "✅ انتهى البناء"
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log | tail -100
+          echo "==== END ===="
+          echo "🔍 الأخطاء في الـ log:"
+          grep -B 1 -A 5 "FAILURE\|What went wrong" build.log | head -60 || true
 
       - name: 📤 رفع Debug APK
         uses: actions/upload-artifact@v4
@@ -107,5 +109,6 @@ jobs:
           path: |
             app/build/outputs/logs/
             app/build/reports/
+            build.log
           if-no-files-found: ignore
           retention-days: 7
