@@ -59,17 +59,27 @@ jobs:
           gradle wrapper --gradle-version 9.3.1 --distribution-type bin
           chmod +x gradlew
 
-      - name: 🩹 إصلاح إصدار KSP
+      - name: 🩹 تحويل من KSP إلى KAPT
         run: |
-          echo "🔍 الإصدار الحالي:"
-          grep "googleDevtoolsKsp" gradle/libs.versions.toml || echo "غير موجود"
-          sed -i 's/googleDevtoolsKsp = "2.3.5"/googleDevtoolsKsp = "2.2.10-2.0.2"/' gradle/libs.versions.toml
-          echo "✅ الإصدار الجديد:"
-          grep "googleDevtoolsKsp" gradle/libs.versions.toml
+          echo "🔄 تحويل المشروع من KSP إلى KAPT..."
+          sed -i '/google-devtools-ksp/d' gradle/libs.versions.toml
+          sed -i '/googleDevtoolsKsp/d' gradle/libs.versions.toml
+          if ! grep -q "kotlin-kapt" gradle/libs.versions.toml; then
+            sed -i '/\[plugins\]/a kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }' gradle/libs.versions.toml
+          fi
+          sed -i '/google.devtools.ksp/d' build.gradle.kts
+          if ! grep -q "kotlin.kapt" build.gradle.kts; then
+            sed -i 's/alias(libs.plugins.roborazzi)/alias(libs.plugins.kotlin.kapt) apply false\n  alias(libs.plugins.roborazzi)/' build.gradle.kts
+          fi
+          sed -i '/google.devtools.ksp/d' app/build.gradle.kts
+          if ! grep -q "kotlin.kapt" app/build.gradle.kts; then
+            sed -i 's/alias(libs.plugins.roborazzi)/alias(libs.plugins.kotlin.kapt)\n  alias(libs.plugins.roborazzi)/' app/build.gradle.kts
+          fi
+          sed -i 's|"ksp"(libs.androidx.room.compiler)|"kapt"(libs.androidx.room.compiler)|g' app/build.gradle.kts
+          sed -i '/"ksp"(libs.moshi.kotlin.codegen)/d' app/build.gradle.kts
           sed -i '/ksp\./d' gradle.properties
           sed -i '/org.gradle.unsafe.configuration-cache/d' gradle.properties
-          echo "✅ gradle.properties:"
-          cat gradle.properties
+          echo "✅ تم التحويل"
 
       - name: 🔐 توليد debug.keystore
         run: |
@@ -90,7 +100,7 @@ jobs:
           echo "🚀 بدء البناء..."
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log | tail -100
           echo "==== END ===="
-          echo "🔍 الأخطاء في الـ log:"
+          echo "🔍 الأخطاء:"
           grep -B 1 -A 5 "FAILURE\|What went wrong" build.log | head -60 || true
 
       - name: 📤 رفع Debug APK
@@ -101,8 +111,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: 📋 رفع Logs في حالة الفشل
-        if: failure()
+      - name: 📋 رفع Logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-logs-${{ github.run_id }}
