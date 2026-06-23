@@ -59,30 +59,16 @@ jobs:
           gradle wrapper --gradle-version 9.3.1 --distribution-type bin
           chmod +x gradlew
 
-      - name: 🩹 تحويل KSP→KAPT + تعطيل built-in Kotlin
+      - name: 🩹 إصلاح إصدار KSP
         run: |
-          sed -i '/google-devtools-ksp/d' gradle/libs.versions.toml
-          sed -i '/googleDevtoolsKsp/d' gradle/libs.versions.toml
-          if ! grep -q "kotlin-kapt" gradle/libs.versions.toml; then
-            sed -i '/\[plugins\]/a kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }' gradle/libs.versions.toml
-          fi
-          sed -i '/google.devtools.ksp/d' build.gradle.kts
-          if ! grep -q "kotlin.kapt" build.gradle.kts; then
-            sed -i 's/alias(libs.plugins.roborazzi)/alias(libs.plugins.kotlin.kapt) apply false\n  alias(libs.plugins.roborazzi)/' build.gradle.kts
-          fi
-          sed -i '/google.devtools.ksp/d' app/build.gradle.kts
-          if ! grep -q "kotlin.kapt" app/build.gradle.kts; then
-            sed -i 's/alias(libs.plugins.roborazzi)/alias(libs.plugins.kotlin.kapt)\n  alias(libs.plugins.roborazzi)/' app/build.gradle.kts
-          fi
-          sed -i 's|"ksp"(libs.androidx.room.compiler)|"kapt"(libs.androidx.room.compiler)|g' app/build.gradle.kts
-          sed -i '/"ksp"(libs.moshi.kotlin.codegen)/d' app/build.gradle.kts
+          echo "قبل:"
+          grep "googleDevtoolsKsp" gradle/libs.versions.toml
+          sed -i 's/googleDevtoolsKsp = "2.3.5"/googleDevtoolsKsp = "2.2.10-2.0.2"/' gradle/libs.versions.toml
+          sed -i '/android.builtInKotlin/d' gradle.properties
+          sed -i '/android.newDsl/d' gradle.properties
           sed -i '/ksp\./d' gradle.properties
-          if ! grep -q "android.builtInKotlin" gradle.properties; then
-            echo "" >> gradle.properties
-            echo "android.builtInKotlin=false" >> gradle.properties
-            echo "android.newDsl=false" >> gradle.properties
-          fi
-          echo "✅ تم"
+          echo "بعد:"
+          grep "googleDevtoolsKsp" gradle/libs.versions.toml
 
       - name: 🔐 توليد debug.keystore
         run: |
