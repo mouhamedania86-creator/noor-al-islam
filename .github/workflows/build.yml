@@ -59,7 +59,7 @@ jobs:
           gradle wrapper --gradle-version 9.3.1 --distribution-type bin
           chmod +x gradlew
 
-      - name: 🩹 تحويل KSP إلى KAPT
+      - name: 🩹 تحويل KSP→KAPT + تعطيل built-in Kotlin
         run: |
           sed -i '/google-devtools-ksp/d' gradle/libs.versions.toml
           sed -i '/googleDevtoolsKsp/d' gradle/libs.versions.toml
@@ -77,8 +77,12 @@ jobs:
           sed -i 's|"ksp"(libs.androidx.room.compiler)|"kapt"(libs.androidx.room.compiler)|g' app/build.gradle.kts
           sed -i '/"ksp"(libs.moshi.kotlin.codegen)/d' app/build.gradle.kts
           sed -i '/ksp\./d' gradle.properties
-          sed -i '/org.gradle.unsafe.configuration-cache/d' gradle.properties
-          echo "✅ تم التحويل لـ kapt"
+          if ! grep -q "android.builtInKotlin" gradle.properties; then
+            echo "" >> gradle.properties
+            echo "android.builtInKotlin=false" >> gradle.properties
+            echo "android.newDsl=false" >> gradle.properties
+          fi
+          echo "✅ تم"
 
       - name: 🔐 توليد debug.keystore
         run: |
@@ -95,16 +99,16 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace > build.log 2>&1
           EXIT_CODE=$?
           echo "Exit code: $EXIT_CODE"
-          echo ""
-          echo "################### ERROR REPORT ###################"
-          echo ""
-          echo "==== كل سطور 'error/fail/exception' ===="
-          grep -niE "error|fail|exception|caused|cannot|missing|not found|unable|unsupported" build.log | head -30
-          echo ""
-          echo "==== أول 40 سطر من الـ log ===="
-          head -40 build.log
-          echo ""
-          echo "################### END ###################"
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "################### ERROR REPORT ###################"
+            grep -niE "error|fail|exception|caused|cannot|missing|not found|unable|unsupported" build.log | head -30
+            echo "==== أول 40 سطر ===="
+            head -40 build.log
+            echo "################### END ###################"
+          else
+            echo "✅ البناء نجح!"
+            ls -la app/build/outputs/apk/debug/
+          fi
           exit $EXIT_CODE
 
       - name: 📤 رفع Debug APK
