@@ -96,18 +96,15 @@ jobs:
           EXIT_CODE=$?
           echo "Exit code: $EXIT_CODE"
           echo ""
-          echo "=========================================="
-          echo "🔍 نتيجة البناء:"
-          echo "=========================================="
-          if [ $EXIT_CODE -eq 0 ]; then
-            echo "✅ البناء نجح!"
-            ls -la app/build/outputs/apk/debug/ 2>/dev/null
-          else
-            echo "❌ البناء فشل - آخر 80 سطر من الـ log:"
-            echo "=========================================="
-            tail -80 build.log
-            echo "=========================================="
-          fi
+          echo "################### ERROR REPORT ###################"
+          echo ""
+          echo "==== كل سطور 'error/fail/exception' ===="
+          grep -niE "error|fail|exception|caused|cannot|missing|not found|unable|unsupported" build.log | head -30
+          echo ""
+          echo "==== أول 40 سطر من الـ log ===="
+          head -40 build.log
+          echo ""
+          echo "################### END ###################"
           exit $EXIT_CODE
 
       - name: 📤 رفع Debug APK
