@@ -59,16 +59,30 @@ jobs:
           gradle wrapper --gradle-version 9.3.1 --distribution-type bin
           chmod +x gradlew
 
-      - name: 🩹 إصلاح إصدار KSP
+      - name: 🩹 إصلاح إصدار KSP و source sets
         run: |
           echo "قبل:"
           grep "googleDevtoolsKsp" gradle/libs.versions.toml
+
+          # تحديث KSP للإصدار المتطابق مع Kotlin 2.2.10
           sed -i 's/googleDevtoolsKsp = "2.3.5"/googleDevtoolsKsp = "2.2.10-2.0.2"/' gradle/libs.versions.toml
+
+          # تنظيف أي flags متضاربة
           sed -i '/android.builtInKotlin/d' gradle.properties
           sed -i '/android.newDsl/d' gradle.properties
           sed -i '/ksp\./d' gradle.properties
+
+          # السماح لـ KSP بإضافة Kotlin source sets
+          if ! grep -q "android.disallowKotlinSourceSets" gradle.properties; then
+            echo "" >> gradle.properties
+            echo "# Allow KSP to add Kotlin source sets" >> gradle.properties
+            echo "android.disallowKotlinSourceSets=false" >> gradle.properties
+          fi
+
           echo "بعد:"
           grep "googleDevtoolsKsp" gradle/libs.versions.toml
+          echo "gradle.properties:"
+          cat gradle.properties
 
       - name: 🔐 توليد debug.keystore
         run: |
